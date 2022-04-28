@@ -1,7 +1,7 @@
 # skeleton-to-MIP
 Generating image stacks from EM neurons for MIP search
 
-See example R code in FAFB_to_MIPmask.html
+See example R code in `FAFB_to_MIPmask.html`
 
 Neuron morphology data available via Virtual Fly Brain: https://fafb.catmaid.virtualflybrain.org/
 
