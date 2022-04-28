@@ -1,4 +1,4 @@
-# EMneuron_to_MIP
+# skeleton-to-MIP
 Generating image stacks from EM neurons for MIP search
 
 Neuron morphology data available via Virtual Fly Brain: https://fafb.catmaid.virtualflybrain.org/
