@@ -1,0 +1,103 @@
+---
+title: "FAFB_neuron_to_MIPmask"
+output: html_document
+---
+
+### Generate image stacks from FAFB neurons for MIP search
+
+as described in Taisz and Galili et al., 2022
+
+Data available via Virtual Fly Brain: <https://fafb.catmaid.virtualflybrain.org/>
+
+MIP search described in Otsuna et al., 2018 <https://www.biorxiv.org/content/10.1101/318006v1>
+
+MIP search online tool: <https://neuronbridge.janelia.org/>
+
+```{r message = FALSE, warning=FALSE}
+
+# run these lines if you don't have the natverse toolbox installed
+# install.packages("natmanager")
+# natmanager::install("natverse")
+
+# load necessary packages and brain registration files
+library("catmaid")
+library("nat.jrcbrains")
+
+# this will download some large files from the internet the first time
+template_info=nat.jrcbrains::register_saalfeldlab_registrations()
+required_templates=c("JRC2018F_FAFB", "JRC2018F_JRCFIB2018F", "JRC2018U_JRC2018F")
+if(length(template_info)==0 || !all(required_templates %in% basename(names(template_info)))) {
+  nat.jrcbrains::download_saalfeldlab_registrations()
+}
+
+```
+
+```{r}
+# set up connection to Virtual Fly Brain FAFB CATMAID instance and read neurons
+vfbcatmaid = vfbcatmaid(dataset = "fafb")
+# read neurons using the skeleton IDs of lvPNs (see Supplementary Table 2 / Connectomic identifiers for more IDs)
+lvPN_nl = read.neurons.catmaid(c(57179, 57158, 57035))
+```
+
+```{r}
+# 3D plot of neurons 
+# nopen3d()
+# plot3d(FAFB)
+# plot3d(lvPN_nl)
+
+# 2D plot of neurons
+plot(lvPN_nl, main = NULL)
+```
+
+### Transform neurons to JRC2018U template from FAFB space and create a 3D image stack
+
+```{r}
+ # see Bates, Manton et al. 2020 and Bogovic et al. 2020; https://www.janelia.org/open-science/jrc-2018-brain-templates
+lvPN_nl_x = xform_brain(lvPN_nl, sample = "FAFB14", reference = JRC2018U)
+
+# the MIP images are in a downsampled version of this template (JRC2018U), define the downsampled dimensions
+JRC2018Umip = templatebrain("JRC2018Umip", dims = c(1210,566,174), voxdims = c(0.519,0.519,1), units = "microns")
+# create a 3D image of these neurons (this is a matrix the size of our image stack: 1210:566:174, with the appropriate voxel dimensions)
+lvPN_im = as.im3d(xyzmatrix(lvPN_nl_x), JRC2018Umip)
+# scale intensity values to fill 8bit range  (use the 95th percentile of intensity values)
+perc95 = quantile(lvPN_im[lvPN_im > 0], c(0.95))
+lvPN_im = floor(lvPN_im * 255/perc95)
+lvPN_im[lvPN_im > 255] = 255
+# hist(lvPN_im[lvPN_im > 0])
+```
+
+### Write out image stack
+
+```{r}
+# edit the filename to point to your target directory
+# write the image stack out as an 8bit 3D .nrrd
+filename = ".../your_path/lvPN_JRC2018Umip_raw.nrrd"
+# write.im3d(lvPN_im, filename, dtype='byte')
+
+```
+
+### Generate a 2D color coded MIP image in ImageJ/Fiji
+
+-   Follow the instructions at <https://github.com/JaneliaSciComp/ColorMIP_Mask_Search/tree/master/ColorDepthMIP_Generator>
+
+    -   Download "Plugins_Color_MIP.zip" and decompress. Also download "Color_Depth_MIP_batch_0308_2021.ijm" (easiest is to clone the whole GitHub repository)
+
+    -   Copy "Plugins_Color_MIP" folder into Fiji/Plugins/ folder (please do not change the folder name, the name of folder is using as a link to the contents of .tiff/nrrd files).
+
+    -   Copy "Color_Depth_MIP_batch_0308_2021.ijm" into Fiji/Plugins/Macros/ folder.
+
+    -   Copy "PsychedelicRainBow2.lut" into Fiji/luts/ folder.
+
+    -   run Macro: Plugins/Macro/Color_Depth_MIP_batch_0308_2021.ijm
+
+    -   Select directory that contains 3D stacks to be color depth MIP
+
+    -   Select directory for saving MIPs (it has to be different than the one containing the 3D stacks)
+
+### Upload the saved MIP file at <https://neuronbridge.janelia.org/upload> and select the option: `Aligned Color Depth 2D MIP`
+
+-   select the Target Image Library
+
+    -   Light Microscopy Libraries to find genetic driver lines that label your neuron
+
+    -   Electron Microscopy Libraries to find the matching neurons in the hemibrain dataset
