@@ -1,4 +1,4 @@
-# skeleton-to-MIP
+# skeleton-to-MIP [![DOI](https://zenodo.org/badge/486648841.svg)]
 Generating image stacks from EM neurons for MIP search
 
 See example R code in `FAFB_to_MIPmask.html`
